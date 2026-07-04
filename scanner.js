@@ -14,17 +14,32 @@ const { authenticator } = require('otplib');
 const express = require('express');
 const WebSocket = require('ws');
 const { fyersModel, fyersDataSocket } = require('fyers-api-v3');
+const http = require('http');
 
 // ============================================================
 // CONFIG & GLOBALS
 // ============================================================
 
 let credentials = {};
-try {
-    credentials = JSON.parse(fs.readFileSync(path.join(__dirname, 'credentials.json'), 'utf-8'));
-} catch (e) {
-    console.error("❌ Failed to read credentials.json. Please ensure it exists and is formatted correctly.", e.message);
-    process.exit(1);
+if (process.env.FY_ID && process.env.APP_ID && process.env.SECRET_KEY) {
+    credentials = {
+        FY_ID: process.env.FY_ID,
+        APP_ID: process.env.APP_ID,
+        APP_TYPE: process.env.APP_TYPE || '100',
+        SECRET_KEY: process.env.SECRET_KEY,
+        TOTP_KEY: process.env.TOTP_KEY,
+        PIN: process.env.PIN,
+        REDIRECT_URI: process.env.REDIRECT_URI || 'https://www.google.com/'
+    };
+    console.log("ℹ️ Loaded credentials from Environment Variables.");
+} else {
+    try {
+        credentials = JSON.parse(fs.readFileSync(path.join(__dirname, 'credentials.json'), 'utf-8'));
+        console.log("ℹ️ Loaded credentials from credentials.json.");
+    } catch (e) {
+        console.error("❌ Failed to load credentials from either environment variables or credentials.json.", e.message);
+        process.exit(1);
+    }
 }
 
 const FY_ID = credentials.FY_ID;
@@ -35,8 +50,7 @@ const TOTP_KEY = credentials.TOTP_KEY;
 const PIN = credentials.PIN;
 const REDIRECT_URI = credentials.REDIRECT_URI;
 
-const PORT = 8081;
-const WS_PORT = 8766;
+const PORT = process.env.PORT || 8081;
 
 // Settings
 let STRIKES_EACH_SIDE = 1;
@@ -941,27 +955,6 @@ function startFyersWebsocket() {
 // LOCAL WEBSOCKET BROADCASTER SERVER
 // ============================================================
 
-function runWsServer() {
-    wss = new WebSocket.Server({ port: WS_PORT });
-    console.log(`🔌 WebSocket server started on ws://localhost:${WS_PORT}`);
-
-    wss.on('connection', (ws) => {
-        console.log("Dashboard client connected.");
-        ws.send(JSON.stringify({
-            type: "init",
-            data: alertsHistory
-        }));
-
-        ws.on('error', (err) => {
-            console.error("Dashboard client WS error:", err);
-        });
-
-        ws.on('close', () => {
-            console.log("Dashboard client disconnected.");
-        });
-    });
-}
-
 function broadcastData(messageObj) {
     if (!wss) return;
     const msgStr = JSON.stringify(messageObj);
@@ -1013,9 +1006,32 @@ app.post('/api/settings', async (req, res) => {
     }
 });
 
-function runHttpServer() {
-    app.listen(PORT, () => {
-        console.log(`🌍 Web server started at http://localhost:${PORT}`);
+let server;
+
+function startCombinedServer() {
+    server = http.createServer(app);
+    wss = new WebSocket.Server({ server });
+    
+    console.log(`🔌 WebSocket server attached to HTTP server.`);
+
+    wss.on('connection', (ws) => {
+        console.log("Dashboard client connected.");
+        ws.send(JSON.stringify({
+            type: "init",
+            data: alertsHistory
+        }));
+
+        ws.on('error', (err) => {
+            console.error("Dashboard client WS error:", err);
+        });
+
+        ws.on('close', () => {
+            console.log("Dashboard client disconnected.");
+        });
+    });
+
+    server.listen(PORT, () => {
+        console.log(`🌍 Combined Web and WebSocket server started on port ${PORT}`);
     });
 }
 
@@ -1075,8 +1091,7 @@ async function main() {
 
     await buildUniverse(cachedFoSymbols, cachedFoStocks);
 
-    runHttpServer();
-    runWsServer();
+    startCombinedServer();
 
     // Universe periodic refresh
     setInterval(async () => {
@@ -1092,8 +1107,7 @@ async function main() {
     console.log(`\n🚀 OPTIONS FLOW SCANNER STARTED`);
     console.log(`📦 Symbols: ${optionSymbols.length}`);
     console.log(`📅 Expiry Mode: ${USER_EXPIRY ? USER_EXPIRY : 'Automatic Nearest'}`);
-    console.log(`🌍 Web dashboard: http://localhost:${PORT}`);
-    console.log(`🔌 WebSocket server: ws://localhost:${WS_PORT}`);
+    console.log(`🌍 Web & WebSocket dashboard active on port: ${PORT}`);
     console.log("=".repeat(50) + "\n");
 
     startFyersWebsocket();

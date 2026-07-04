@@ -920,7 +920,8 @@
 
         // Initialize WebSocket connection
         function connect() {
-            const wsUri = `ws://${window.location.hostname || 'localhost'}:8766`;
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUri = `${protocol}//${window.location.host}`;
             console.log(`Connecting to WebSocket: ${wsUri}`);
             connText.innerText = "CONNECTING...";
             connDot.className = "status-dot";
