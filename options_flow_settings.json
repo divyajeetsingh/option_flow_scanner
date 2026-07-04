@@ -1,0 +1,11 @@
+{
+    "expiry_mode": "automatic",
+    "manual_expiry_code": "07JUL",
+    "fallback_to_nearest": false,
+    "strikes_each_side": 1,
+    "volume_multiplier": 3,
+    "min_volume": 500,
+    "min_premium": 10,
+    "cooldown_minutes": 5,
+    "refresh_interval": 1800
+}

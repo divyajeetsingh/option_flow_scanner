@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Options Flow Dashboard</title>
+    <!-- Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #060913;
+            --surface-bg: rgba(13, 20, 38, 0.45);
+            --surface-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            
+            --ce-color: #10b981;
+            --ce-glow: rgba(16, 185, 129, 0.15);
+            --pe-color: #f43f5e;
+            --pe-glow: rgba(244, 63, 94, 0.15);
+            
+            --accent-glow: rgba(59, 130, 246, 0.35);
+            --accent-amber: #f59e0b;
+            --accent-blue: #3b82f6;
+            
+            --transition-speed: 0.25s;
+            --table-header-bg: #090c17;
+            --header-bg: rgba(6, 9, 19, 0.7);
+            --tg-card-bg: rgba(10, 15, 30, 0.6);
+            --input-bg: rgba(15, 23, 42, 0.6);
+            --border-row: rgba(255, 255, 255, 0.03);
+        }
+
+        body.theme-light {
+            --bg-color: #f1f5f9;
+            --surface-bg: rgba(255, 255, 255, 0.85);
+            --surface-border: rgba(15, 23, 42, 0.08);
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --table-header-bg: #f8fafc;
+            --header-bg: rgba(255, 255, 255, 0.85);
+            --tg-card-bg: rgba(255, 255, 255, 0.6);
+            --input-bg: rgba(255, 255, 255, 0.9);
+            --border-row: rgba(15, 23, 42, 0.04);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.04) 0px, transparent 40%),
+                radial-gradient(at 100% 0%, rgba(16, 185, 129, 0.03) 0px, transparent 40%),
+                radial-gradient(at 50% 100%, rgba(244, 63, 94, 0.03) 0px, transparent 50%);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.08) 0px, transparent 40%),
+                radial-gradient(at 100% 0%, rgba(16, 185, 129, 0.05) 0px, transparent 40%),
+                radial-gradient(at 50% 100%, rgba(244, 63, 94, 0.05) 0px, transparent 50%);
+            background-attachment: fixed;
+        }
+
+        header {
+            background: var(--header-bg);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--surface-border);
+            padding: 1.25rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+        }
+
+        .header-logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #60a5fa, #3b82f6, #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-logo span.pulse-icon {
+            font-size: 1.6rem;
+            -webkit-text-fill-color: initial;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid var(--surface-border);
+            padding: 0.4rem 0.85rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #ef4444;
+            box-shadow: 0 0 8px #ef4444;
+        }
+
+        .status-dot.online {
+            background-color: var(--ce-color);
+            box-shadow: 0 0 8px var(--ce-color);
+            animation: pulse-green 2s infinite;
+        }
+
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        main {
+            flex: 1;
+            padding: 2rem;
+            max-width: 1800px;
+            margin: 0 auto;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Stats Cards grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .stat-card {
+            background: var(--surface-bg);
+            border: 1px solid var(--surface-border);
+            border-radius: 16px;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            backdrop-filter: blur(8px);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent-blue);
+        }
+
+        .stat-card.ce-stat::before { background: var(--ce-color); }
+        .stat-card.pe-stat::before { background: var(--pe-color); }
+        .stat-card.ratio-stat::before { background: var(--accent-amber); }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        /* Control Panel */
+        .controls-panel {
+            background: var(--surface-bg);
+            border: 1px solid var(--surface-border);
+            border-radius: 16px;
+            padding: 1rem 1.5rem;
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .search-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex: 1;
+            min-width: 280px;
+        }
+
+        .search-input {
+            width: 100%;
+            max-width: 380px;
+            background: var(--input-bg);
+            border: 1px solid var(--surface-border);
+            border-radius: 10px;
+            padding: 0.6rem 1rem;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .filter-btn {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid var(--surface-border);
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover {
+            color: var(--text-primary);
+            background: rgba(30, 41, 59, 0.7);
+        }
+
+        .filter-btn.active {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: white;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.25);
+        }
+
+        .filter-btn.active.ce-type {
+            background: var(--ce-color);
+            border-color: var(--ce-color);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.25);
+        }
+
+        .filter-btn.active.pe-type {
+            background: var(--pe-color);
+            border-color: var(--pe-color);
+            box-shadow: 0 0 10px rgba(244, 63, 94, 0.25);
+        }
+
+        .action-buttons {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .action-btn {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid var(--surface-border);
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            background: rgba(51, 65, 85, 0.6);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Split View Layout */
+        .split-layout {
+            display: flex;
+            gap: 1.5rem;
+            flex: 1;
+            align-items: stretch;
+        }
+
+        .grid-section {
+            flex: 55;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .feed-section {
+            flex: 45;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Panels styling */
+        .dashboard-panel {
+            background: var(--surface-bg);
+            border: 1px solid var(--surface-border);
+            border-radius: 16px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            height: 650px;
+        }
+
+        .panel-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--surface-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(10, 15, 30, 0.3);
+        }
+
+        .panel-header h2 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: -0.2px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .panel-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        /* Option Table Grid styling */
+        .alerts-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: left;
+        }
+
+        .alerts-table th {
+            color: var(--text-secondary);
+            font-weight: 600;
+            padding: 0.85rem 1rem;
+            border-bottom: 2px solid var(--surface-border);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            position: sticky;
+            top: 0;
+            background: var(--table-header-bg);
+            z-index: 10;
+            cursor: pointer;
+            user-select: none;
+            transition: color 0.2s;
+        }
+
+        .alerts-table th:hover {
+            color: var(--text-primary);
+        }
+
+        .alerts-table th .sort-indicator {
+            font-size: 0.7rem;
+            margin-left: 0.2rem;
+            color: var(--text-muted);
+        }
+
+        .alerts-table td {
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid var(--border-row);
+            font-family: 'Outfit', sans-serif;
+            vertical-align: middle;
+        }
+
+        .alerts-table tr {
+            transition: background-color 0.25s;
+        }
+
+        .alerts-table tr:hover {
+            background-color: rgba(255, 255, 255, 0.02) !important;
+        }
+
+        .alerts-table tbody tr:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0.01);
+        }
+
+        .cell-mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+        }
+
+        /* Direction badges */
+        .badge-direction {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 5px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-direction.ce {
+            background: var(--ce-glow);
+            color: var(--ce-color);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .badge-direction.pe {
+            background: var(--pe-glow);
+            color: var(--pe-color);
+            border: 1px solid rgba(244, 63, 94, 0.3);
+        }
+
+        .highlight-text {
+            font-weight: 700;
+        }
+
+        .highlight-ce {
+            color: var(--ce-color);
+        }
+
+        .highlight-pe {
+            color: var(--pe-color);
+        }
+
+        .highlight-spike {
+            color: var(--accent-amber);
+            font-weight: 700;
+        }
+
+        /* Telegram Card List styling */
+        .telegram-feed-body {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            padding: 1rem;
+        }
+
+        .telegram-card {
+            background: var(--tg-card-bg);
+            border: 1px solid var(--surface-border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+            position: relative;
+            transition: border-color 0.25s, box-shadow 0.25s;
+            animation: slide-in 0.3s ease-out;
+        }
+
+        .telegram-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+        }
+
+        .telegram-card.ce-side {
+            border-left: 4px solid var(--ce-color);
+            background-image: linear-gradient(90deg, rgba(16, 185, 129, 0.02) 0%, transparent 100%);
+        }
+
+        .telegram-card.pe-side {
+            border-left: 4px solid var(--pe-color);
+            background-image: linear-gradient(90deg, rgba(244, 63, 94, 0.02) 0%, transparent 100%);
+        }
+
+        .tg-card-header {
+            font-size: 0.8rem;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 0.4rem;
+        }
+
+        .telegram-card.ce-side .tg-card-header {
+            color: var(--ce-color);
+        }
+
+        .telegram-card.pe-side .tg-card-header {
+            color: var(--pe-color);
+        }
+
+        .tg-card-body {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: #cbd5e1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .tg-card-body div {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px dotted rgba(255, 255, 255, 0.03);
+            padding-bottom: 0.2rem;
+        }
+
+        .tg-card-body div:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .tg-card-body span.tg-label {
+            color: var(--text-secondary);
+        }
+
+        .tg-card-body span.tg-value {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .tg-card-footer {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 0.4rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 0.5rem;
+        }
+
+        .btn-copy-alert {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            cursor: pointer;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.25rem 0.6rem;
+            border-radius: 5px;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .btn-copy-alert:hover {
+            background: rgba(59, 130, 246, 0.2);
+            color: #f8fafc;
+            border-color: rgba(59, 130, 246, 0.4);
+        }
+
+        .no-alerts-msg {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            padding: 4rem 0;
+            font-style: italic;
+        }
+
+        /* Dynamic flash animations for new alerts */
+        .row-flash-new {
+            animation: new-row-glow 1.8s ease-out;
+        }
+
+        @keyframes new-row-glow {
+            0% {
+                background-color: rgba(59, 130, 246, 0.25);
+                box-shadow: inset 0 0 15px rgba(59, 130, 246, 0.1);
+            }
+            100% {
+                background-color: transparent;
+            }
+        }
+
+        @keyframes slide-in {
+            from { transform: translateY(-10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            header {
+                flex-direction: column;
+                gap: 1rem;
+                padding: 1rem;
+            }
+            .split-layout {
+                flex-direction: column;
+            }
+            .grid-section, .feed-section {
+                flex: 1;
+            }
+            .dashboard-panel {
+                height: 500px;
+            }
+            .controls-panel {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .search-container {
+                min-width: 100%;
+            }
+            .search-input {
+                max-width: 100%;
+            }
+            .filter-buttons, .action-buttons {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Section -->
+    <header>
+        <div class="header-left">
+            <div class="header-logo">
+                <span class="pulse-icon">⚡</span>
+                OPTIONS FLOW SCANNER
+            </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 1.5rem;">
+            <a href="https://t.me/divyajeetfx" target="_blank" style="text-decoration: none; color: var(--text-secondary); font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 0.35rem; transition: color var(--transition-speed);" onmouseover="this.style.color='#60a5fa'" onmouseout="this.style.color='var(--text-secondary)'">
+                ✈️ Developer: @divyajeetfx
+            </a>
+            <div class="connection-status">
+                <span id="conn-text">DISCONNECTED</span>
+                <div id="conn-dot" class="status-dot"></div>
+            </div>
+            <button id="theme-toggle" onclick="toggleTheme()" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; transition: transform 0.2s; display: inline-flex; align-items: center; padding: 0; margin-left: -0.5rem;" title="Switch Theme">🌙</button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Statistics Section -->
+        <section class="stats-grid">
+            <div class="stat-card total-stat">
+                <span class="stat-label">Total Alerts</span>
+                <span class="stat-value" id="stat-total">0</span>
+            </div>
+            <div class="stat-card ce-stat">
+                <span class="stat-label">🟢 CE Flow Alerts</span>
+                <span class="stat-value" id="stat-ce">0</span>
+            </div>
+            <div class="stat-card pe-stat">
+                <span class="stat-label">🔴 PE Flow Alerts</span>
+                <span class="stat-value" id="stat-pe">0</span>
+            </div>
+            <div class="stat-card ratio-stat">
+                <span class="stat-label">Max Spike Ratio</span>
+                <span class="stat-value" id="stat-max-ratio">0.0x</span>
+            </div>
+        </section>
+
+        <!-- Search & Control Panel -->
+        <section class="controls-panel">
+            <div class="search-container">
+                <input type="text" id="search-bar" class="search-input" placeholder="Search by underlying (e.g. NIFTY, SBIN, RELIANCE)...">
+            </div>
+            
+            <div class="filter-buttons">
+                <button class="filter-btn active" id="btn-filter-all" onclick="setFilter('ALL')">All</button>
+                <button class="filter-btn ce-type" id="btn-filter-ce" onclick="setFilter('CE')">CE Only</button>
+                <button class="filter-btn pe-type" id="btn-filter-pe" onclick="setFilter('PE')">PE Only</button>
+            </div>
+
+            <div class="action-buttons">
+                <button class="action-btn" id="btn-settings" onclick="openSettingsModal()">
+                    ⚙️ Settings
+                </button>
+                <button class="action-btn" id="btn-sound" onclick="toggleSound()">
+                    <span id="sound-icon">🔊</span> Sound: ON
+                </button>
+                <button class="action-btn" id="btn-clear" onclick="clearLogs()">
+                    🗑️ Clear Display
+                </button>
+            </div>
+        </section>
+
+        <!-- Split Layout Grid & Feed Section -->
+        <div class="split-layout">
+            <!-- Left Side: Table Grid -->
+            <section class="grid-section">
+                <div class="dashboard-panel">
+                    <div class="panel-header">
+                        <h2>📊 Option Spikes Grid</h2>
+                        <span style="font-size: 0.85rem; color: var(--text-secondary);" id="feed-info">0 rows displayed</span>
+                    </div>
+                    
+                    <div class="panel-body">
+                        <table class="alerts-table" id="alerts-table">
+                            <thead>
+                                <tr>
+                                    <th onclick="sortTable(0)">Time <span class="sort-indicator" id="sort-0">▼</span></th>
+                                    <th onclick="sortTable(1)">Symbol <span class="sort-indicator" id="sort-1"></span></th>
+                                    <th onclick="sortTable(2)" style="text-align: center;">Type <span class="sort-indicator" id="sort-2"></span></th>
+                                    <th onclick="sortTable(3)" style="text-align: right;">LTP <span class="sort-indicator" id="sort-3"></span></th>
+                                    <th onclick="sortTable(4)" style="text-align: right;">Spike <span class="sort-indicator" id="sort-4"></span></th>
+                                    <th onclick="sortTable(5)" style="text-align: right;">Tick Vol <span class="sort-indicator" id="sort-5"></span></th>
+                                    <th onclick="sortTable(6)" style="text-align: right;">Min Vol <span class="sort-indicator" id="sort-6"></span></th>
+                                    <th onclick="sortTable(7)" style="text-align: right;">Avg Vol <span class="sort-indicator" id="sort-7"></span></th>
+                                    <th onclick="sortTable(8)" style="text-align: right;">Cumulative <span class="sort-indicator" id="sort-8"></span></th>
+                                </tr>
+                            </thead>
+                            <tbody id="alerts-tbody">
+                                <tr>
+                                    <td colspan="9" class="no-alerts-msg">Waiting for WebSocket connection & real-time alerts...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Side: Telegram Style Cards Feed -->
+            <section class="feed-section">
+                <div class="dashboard-panel">
+                    <div class="panel-header">
+                        <h2>💬 Telegram Style Alert Feed</h2>
+                        <span style="font-size: 0.85rem; color: var(--text-secondary);" id="cards-info">0 cards displayed</span>
+                    </div>
+                    
+                    <div class="panel-body telegram-feed-body" id="telegram-feed-tbody">
+                        <div class="no-alerts-msg">No alerts received yet. Messages matching Telegram format will display here.</div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Settings Dialog Modal -->
+    <div id="settings-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(6, 9, 19, 0.85); backdrop-filter: blur(8px); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: #0d1425; border: 1px solid var(--surface-border); border-radius: 16px; width: 90%; max-width: 500px; padding: 2rem; box-shadow: 0 10px 35px rgba(0, 0, 0, 0.6); display: flex; flex-direction: column; gap: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 0.75rem;">
+                <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">⚙️ Scanner Configurations</h3>
+                <button onclick="closeSettingsModal()" style="background: none; border: none; color: var(--text-secondary); font-size: 1.2rem; cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='white'" onmouseout="this.style.color='var(--text-secondary)'">✕</button>
+            </div>
+            
+            <form id="settings-form" onsubmit="saveSettings(event)" style="display: flex; flex-direction: column; gap: 1rem;">
+                <!-- Expiry Selection -->
+                <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                    <label style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Expiry Selection Mode</label>
+                    <select id="setting-expiry-mode" onchange="toggleManualExpiryInput()" style="background: #1e293b; border: 1px solid var(--surface-border); border-radius: 8px; padding: 0.55rem; color: white; outline: none; font-family: inherit; font-size: 0.85rem; width: 100%;">
+                        <option value="automatic">Automatically detect nearest expiry (Recommended)</option>
+                        <option value="manual">Enter specific manual expiry code or date</option>
+                    </select>
+                </div>
+                
+                <!-- Manual Expiry Input Box -->
+                <div id="manual-expiry-container" style="display: none; flex-direction: column; gap: 0.35rem;">
+                    <label style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Manual Expiry Code / Date (e.g. 26JUN, 30 June)</label>
+                    <input type="text" id="setting-manual-expiry" placeholder="e.g., 26JUN" style="background: #1e293b; border: 1px solid var(--surface-border); border-radius: 8px; padding: 0.55rem; color: white; outline: none; font-family: inherit; font-size: 0.85rem;">
+                </div>
+                
+                <!-- Fallback Checkbox -->
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem;">
+                    <input type="checkbox" id="setting-fallback" style="accent-color: var(--accent-blue); width: 15px; height: 15px; cursor: pointer;">
+                    <label for="setting-fallback" style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600; cursor: pointer; user-select: none;">Fallback to nearest expiry if manual is unavailable for a stock</label>
+                </div>
+                
+                <hr style="border: 0; border-top: 1px solid rgba(255, 255, 255, 0.05); margin: 0.25rem 0;">
+                
+                <!-- Numerical Settings Grid -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                        <label style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;">ATM Strikes (Each Side)</label>
+                        <input type="number" id="setting-strikes" min="1" max="10" style="background: #1e293b; border: 1px solid var(--surface-border); border-radius: 8px; padding: 0.55rem; color: white; outline: none; font-family: inherit; font-size: 0.85rem;">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                        <label style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;">Spike Multiplier Threshold</label>
+                        <input type="number" id="setting-multiplier" min="1.0" step="0.5" style="background: #1e293b; border: 1px solid var(--surface-border); border-radius: 8px; padding: 0.55rem; color: white; outline: none; font-family: inherit; font-size: 0.85rem;">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                        <label style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;">Min Trigger Volume</label>
+                        <input type="number" id="setting-min-vol" min="100" style="background: #1e293b; border: 1px solid var(--surface-border); border-radius: 8px; padding: 0.55rem; color: white; outline: none; font-family: inherit; font-size: 0.85rem;">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                        <label style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;">Min Premium LTP (₹)</label>
+                        <input type="number" id="setting-min-prem" min="0" step="0.5" style="background: #1e293b; border: 1px solid var(--surface-border); border-radius: 8px; padding: 0.55rem; color: white; outline: none; font-family: inherit; font-size: 0.85rem;">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                        <label style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;">Alert Cooldown (Minutes)</label>
+                        <input type="number" id="setting-cooldown" min="1" style="background: #1e293b; border: 1px solid var(--surface-border); border-radius: 8px; padding: 0.55rem; color: white; outline: none; font-family: inherit; font-size: 0.85rem;">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                        <label style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;">Universe Refresh (Sec)</label>
+                        <input type="number" id="setting-refresh" min="60" style="background: #1e293b; border: 1px solid var(--surface-border); border-radius: 8px; padding: 0.55rem; color: white; outline: none; font-family: inherit; font-size: 0.85rem;">
+                    </div>
+                </div>
+                
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 1rem;">
+                    <button type="button" onclick="closeSettingsModal()" style="background: transparent; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 0.6rem 1.2rem; color: var(--text-secondary); cursor: pointer; font-family: inherit; font-size: 0.85rem; font-weight: 600; transition: all 0.2s;" onmouseover="this.style.borderColor='rgba(255,255,255,0.3)';this.style.color='white'" onmouseout="this.style.borderColor='rgba(255,255,255,0.15)';this.style.color='var(--text-secondary)'">Cancel</button>
+                    <button type="submit" style="background: var(--accent-blue); border: none; border-radius: 8px; padding: 0.6rem 1.2rem; color: white; cursor: pointer; font-family: inherit; font-size: 0.85rem; font-weight: 700; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.25); transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#2563eb'" onmouseout="this.style.backgroundColor='var(--accent-blue)'">Save Settings</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        let alerts = [];
+        let filterType = 'ALL';
+        let searchQuery = '';
+        let soundEnabled = true;
+        let sortColumn = 0;
+        let sortAscending = false; // default sort desc (newest first)
+
+        const connText = document.getElementById("conn-text");
+        const connDot = document.getElementById("conn-dot");
+        const alertsTbody = document.getElementById("alerts-tbody");
+        const telegramFeedTbody = document.getElementById("telegram-feed-tbody");
+        const feedInfo = document.getElementById("feed-info");
+        const cardsInfo = document.getElementById("cards-info");
+        
+        // Stats elements
+        const statTotal = document.getElementById("stat-total");
+        const statCE = document.getElementById("stat-ce");
+        const statPE = document.getElementById("stat-pe");
+        const statMaxRatio = document.getElementById("stat-max-ratio");
+        
+        // Search bar
+        const searchBar = document.getElementById("search-bar");
+        searchBar.addEventListener('input', (e) => {
+            searchQuery = e.target.value.trim().toUpperCase();
+            renderAllViews();
+        });
+
+        // Synthetic Chime generator using Web Audio API to bypass external files
+        function playChime(isPE = false) {
+            if (!soundEnabled) return;
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+                
+                const ctx = new AudioContext();
+                
+                // First Note
+                const osc1 = ctx.createOscillator();
+                const gain1 = ctx.createGain();
+                osc1.connect(gain1);
+                gain1.connect(ctx.destination);
+                
+                osc1.type = 'sine';
+                osc1.frequency.setValueAtTime(isPE ? 523.25 : 659.25, ctx.currentTime); // C5 or E5
+                gain1.gain.setValueAtTime(0.08, ctx.currentTime);
+                gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+                
+                osc1.start(ctx.currentTime);
+                osc1.stop(ctx.currentTime + 0.5);
+                
+                // Second Note (slight delay)
+                const osc2 = ctx.createOscillator();
+                const gain2 = ctx.createGain();
+                osc2.connect(gain2);
+                gain2.connect(ctx.destination);
+                
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(isPE ? 659.25 : 880.00, ctx.currentTime + 0.15); // E5 or A5
+                gain2.gain.setValueAtTime(0.08, ctx.currentTime + 0.15);
+                gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.7);
+                
+                osc2.start(ctx.currentTime + 0.15);
+                osc2.stop(ctx.currentTime + 0.7);
+                
+            } catch (e) {
+                console.error("Audio playback error:", e);
+            }
+        }
+
+        // Format Numbers
+        function formatNumber(num) {
+            if (num === undefined || num === null) return "0";
+            return num.toLocaleString('en-IN');
+        }
+
+        // Initialize WebSocket connection
+        function connect() {
+            const wsUri = `ws://${window.location.hostname || 'localhost'}:8766`;
+            console.log(`Connecting to WebSocket: ${wsUri}`);
+            connText.innerText = "CONNECTING...";
+            connDot.className = "status-dot";
+
+            ws = new WebSocket(wsUri);
+
+            ws.onopen = function() {
+                console.log("WebSocket connection established.");
+                connText.innerText = "CONNECTED";
+                connDot.className = "status-dot online";
+            };
+
+            ws.onmessage = function(event) {
+                try {
+                    const payload = JSON.parse(event.data);
+                    handleSocketMessage(payload);
+                } catch (e) {
+                    console.error("Error parsing WS packet:", e);
+                }
+            };
+
+            ws.onclose = function(e) {
+                console.warn("WebSocket connection lost. Reconnecting in 3s...", e.reason);
+                connText.innerText = "DISCONNECTED";
+                connDot.className = "status-dot";
+                setTimeout(connect, 3000);
+            };
+
+            ws.onerror = function(err) {
+                console.error("WebSocket error:", err);
+                ws.close();
+            };
+        }
+
+        // Handle incoming WebSocket messages
+        function handleSocketMessage(msg) {
+            if (msg.type === "init") {
+                alerts = msg.data || [];
+                renderAllViews();
+                updateStats();
+            } else if (msg.type === "alert") {
+                const alertData = msg.data;
+                alerts.unshift(alertData);
+                
+                playChime(alertData.direction === "PE");
+                
+                renderAllViews(alertData.symbol); // Pass symbol to highlight
+                updateStats();
+            }
+        }
+
+        // Copy raw Telegram alert block to clipboard
+        function copyAlertText(alertIndex) {
+            const a = alerts[alertIndex];
+            if (!a) return;
+            
+            const direction = a.direction === "CE" ? "🟢 CE FLOW" : "🔴 PE FLOW";
+            const text = 
+`${direction}
+
+📌 ${a.display_name}
+🔍 Symbol: ${a.symbol}
+
+💰 LTP: ₹${a.ltp.toFixed(2)}
+
+📈 Tick Change (Vol): +${a.incremental_volume.toLocaleString('en-IN')}
+🔄 Prev Cumulative Vol: ${a.prev_cumulative_volume.toLocaleString('en-IN')}
+💎 Current Cumulative Vol: ${a.current_cumulative_volume.toLocaleString('en-IN')}
+
+🔥 Current Minute Vol: ${a.minute_volume.toLocaleString('en-IN')}
+📊 Avg Minute Vol: ${Math.round(a.avg_volume).toLocaleString('en-IN')}
+⚡ Spike Ratio: ${a.ratio.toFixed(2)}x
+
+🕐 ${a.timestamp}`;
+
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById(`btn-copy-${alertIndex}`);
+                const oldText = btn.innerText;
+                btn.innerText = "✓ Copied!";
+                btn.style.backgroundColor = "rgba(16, 185, 129, 0.15)";
+                btn.style.color = "var(--ce-color)";
+                btn.style.borderColor = "rgba(16, 185, 129, 0.3)";
+                
+                setTimeout(() => {
+                    btn.innerText = oldText;
+                    btn.style.backgroundColor = "";
+                    btn.style.color = "";
+                    btn.style.borderColor = "";
+                }, 2000);
+            }).catch(err => {
+                console.error("Could not copy text: ", err);
+            });
+        }
+
+        // Toggle Sound Output
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const soundBtn = document.getElementById("btn-sound");
+            if (soundEnabled) {
+                soundBtn.innerHTML = "🔊 Sound: ON";
+                soundBtn.style.color = "var(--text-primary)";
+            } else {
+                soundBtn.innerHTML = "🔇 Sound: OFF";
+                soundBtn.style.color = "var(--text-muted)";
+            }
+        }
+
+        // Clear Alerts display logs (Client-Side only)
+        function clearLogs() {
+            alerts = [];
+            renderAllViews();
+            updateStats();
+        }
+
+        // Filter Controls
+        function setFilter(type) {
+            filterType = type;
+            
+            document.getElementById("btn-filter-all").className = "filter-btn" + (type === 'ALL' ? ' active' : '');
+            document.getElementById("btn-filter-ce").className = "filter-btn ce-type" + (type === 'CE' ? ' active' : '');
+            document.getElementById("btn-filter-pe").className = "filter-btn pe-type" + (type === 'PE' ? ' active' : '');
+            
+            renderAllViews();
+        }
+
+        // Stats Updates
+        function updateStats() {
+            statTotal.innerText = alerts.length;
+            
+            const ceCount = alerts.filter(a => a.direction === 'CE').length;
+            const peCount = alerts.filter(a => a.direction === 'PE').length;
+            statCE.innerText = ceCount;
+            statPE.innerText = peCount;
+            
+            if (alerts.length > 0) {
+                const maxRatio = Math.max(...alerts.map(a => a.ratio));
+                statMaxRatio.innerText = maxRatio.toFixed(2) + "x";
+            } else {
+                statMaxRatio.innerText = "0.0x";
+            }
+        }
+
+        // Trigger both renders
+        function renderAllViews(highlightSymbol = null) {
+            // Apply filtering and search query
+            let filteredAlerts = alerts.map((item, index) => ({ item, index })).filter(wrapper => {
+                const a = wrapper.item;
+                const matchesType = (filterType === 'ALL' || a.direction === filterType);
+                
+                let matchesSearch = true;
+                if (searchQuery) {
+                    const rawSymbol = a.symbol.replace("NSE:", "");
+                    matchesSearch = rawSymbol.includes(searchQuery) || a.display_name.toUpperCase().includes(searchQuery);
+                }
+                
+                return matchesType && matchesSearch;
+            });
+
+            renderTable(filteredAlerts, highlightSymbol);
+            renderTelegramFeed(filteredAlerts, highlightSymbol);
+        }
+
+        // Render Grid Table View
+        function renderTable(filteredWrappers, highlightSymbol) {
+            // Sort wrappers based on wrapped items
+            filteredWrappers.sort((wA, wB) => {
+                let valA, valB;
+                const a = wA.item;
+                const b = wB.item;
+                
+                switch (sortColumn) {
+                    case 0:
+                        valA = a.timestamp; valB = b.timestamp; break;
+                    case 1:
+                        valA = a.display_name; valB = b.display_name; break;
+                    case 2:
+                        valA = a.direction; valB = b.direction; break;
+                    case 3:
+                        valA = a.ltp; valB = b.ltp; break;
+                    case 4:
+                        valA = a.ratio; valB = b.ratio; break;
+                    case 5:
+                        valA = a.incremental_volume; valB = b.incremental_volume; break;
+                    case 6:
+                        valA = a.minute_volume; valB = b.minute_volume; break;
+                    case 7:
+                        valA = a.volume_multiplier; valB = b.volume_multiplier; break; // Use default placeholder if avg volume is missing
+                    case 8:
+                        valA = a.current_cumulative_volume; valB = b.current_cumulative_volume; break;
+                    default:
+                        valA = a.timestamp; valB = b.timestamp;
+                }
+
+                if (typeof valA === 'string') {
+                    return sortAscending ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                } else {
+                    return sortAscending ? valA - valB : valB - valA;
+                }
+            });
+
+            if (filteredWrappers.length === 0) {
+                alertsTbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="no-alerts-msg">
+                            ${alerts.length === 0 ? "No volume spikes detected yet." : "No spikes matched your search filter."}
+                        </td>
+                    </tr>`;
+                feedInfo.innerText = "0 rows displayed";
+                return;
+            }
+
+            feedInfo.innerText = `${filteredWrappers.length} rows displayed`;
+
+            alertsTbody.innerHTML = filteredWrappers.map(wrapper => {
+                const a = wrapper.item;
+                const dirClass = a.direction.toLowerCase();
+                const isHighlighted = (highlightSymbol && a.symbol === highlightSymbol) ? "row-flash-new" : "";
+                
+                return `
+                    <tr class="${isHighlighted}">
+                        <td class="cell-mono">${a.timestamp}</td>
+                        <td style="font-weight: 600;">${a.display_name}</td>
+                        <td style="text-align: center;">
+                            <span class="badge-direction ${dirClass}">
+                                ${a.direction === 'CE' ? '🟢 CE' : '🔴 PE'}
+                            </span>
+                        </td>
+                        <td class="cell-mono highlight-text ${a.direction === 'CE' ? 'highlight-ce' : 'highlight-pe'}" style="text-align: right;">
+                            ₹${a.ltp.toFixed(2)}
+                        </td>
+                        <td class="cell-mono highlight-spike" style="text-align: right; font-weight: 700;">
+                            ${a.ratio.toFixed(2)}x
+                        </td>
+                        <td class="cell-mono" style="text-align: right; color: #a7f3d0; font-weight: 500;">
+                            +${formatNumber(a.incremental_volume)}
+                        </td>
+                        <td class="cell-mono" style="text-align: right;">${formatNumber(a.minute_volume)}</td>
+                        <td class="cell-mono" style="text-align: right; color: var(--text-secondary);">${formatNumber(Math.round(a.avg_volume))}</td>
+                        <td class="cell-mono" style="text-align: right; font-weight: 500; color: #93c5fd;">
+                            ${formatNumber(a.current_cumulative_volume)}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Render Telegram Style Cards Feed
+        function renderTelegramFeed(filteredWrappers, highlightSymbol) {
+            let feedWrappers = [...filteredWrappers];
+            feedWrappers.sort((wA, wB) => wB.item.timestamp.localeCompare(wA.item.timestamp));
+
+            if (feedWrappers.length === 0) {
+                telegramFeedTbody.innerHTML = `
+                    <div class="no-alerts-msg">
+                        ${alerts.length === 0 ? "No alerts received yet." : "No cards matched your search filter."}
+                    </div>`;
+                cardsInfo.innerText = "0 cards displayed";
+                return;
+            }
+
+            cardsInfo.innerText = `${feedWrappers.length} cards displayed`;
+
+            telegramFeedTbody.innerHTML = feedWrappers.map(wrapper => {
+                const a = wrapper.item;
+                const index = wrapper.index;
+                const isCE = a.direction === "CE";
+                const isHighlighted = (highlightSymbol && a.symbol === highlightSymbol) ? "style='box-shadow: 0 0 15px rgba(59, 130, 246, 0.4); border-color: var(--accent-blue);'" : "";
+                
+                return `
+                    <div class="telegram-card ${isCE ? 'ce-side' : 'pe-side'}" ${isHighlighted}>
+                        <div class="tg-card-header">${isCE ? '🟢 CE FLOW' : '🔴 PE FLOW'}</div>
+                        <div class="tg-card-body">
+                            <div>
+                                <span class="tg-label">📌 Option Contract:</span>
+                                <span class="tg-value" style="color: ${isCE ? 'var(--ce-color)' : 'var(--pe-color)'}; font-weight: 700;">${a.display_name}</span>
+                            </div>
+                            <div>
+                                <span class="tg-label">🔍 Trading Symbol:</span>
+                                <span class="tg-value cell-mono">${a.symbol}</span>
+                            </div>
+                            <div>
+                                <span class="tg-label">💰 Last Traded Price (LTP):</span>
+                                <span class="tg-value" style="font-weight: 700;">₹${a.ltp.toFixed(2)}</span>
+                            </div>
+                            <div style="margin-top: 0.35rem; border-top: 1px dashed rgba(255, 255, 255, 0.03); padding-top: 0.35rem;">
+                                <span class="tg-label">📈 Tick Change (Vol):</span>
+                                <span class="tg-value" style="color: #a7f3d0;">+${formatNumber(a.incremental_volume)}</span>
+                            </div>
+                            <div>
+                                <span class="tg-label">🔄 Previous Cumulative Vol:</span>
+                                <span class="tg-value">${formatNumber(a.prev_cumulative_volume)}</span>
+                            </div>
+                            <div>
+                                <span class="tg-label">💎 Current Cumulative Vol:</span>
+                                <span class="tg-value" style="color: #93c5fd;">${formatNumber(a.current_cumulative_volume)}</span>
+                            </div>
+                            <div style="margin-top: 0.35rem; border-top: 1px dashed rgba(255, 255, 255, 0.03); padding-top: 0.35rem;">
+                                <span class="tg-label">🔥 Current Minute Vol:</span>
+                                <span class="tg-value">${formatNumber(a.minute_volume)}</span>
+                            </div>
+                            <div>
+                                <span class="tg-label">📊 Avg Minute Vol:</span>
+                                <span class="tg-value">${formatNumber(Math.round(a.avg_volume))}</span>
+                            </div>
+                            <div>
+                                <span class="tg-label">⚡ Volume Spike Ratio:</span>
+                                <span class="tg-value highlight-spike">${a.ratio.toFixed(2)}x</span>
+                            </div>
+                        </div>
+                        <div class="tg-card-footer">
+                            <span>🕐 Timestamp: ${a.timestamp}</span>
+                            <button class="btn-copy-alert" id="btn-copy-${index}" onclick="copyAlertText(${index})">
+                                📋 Copy Alert Text
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Sort table columns handler
+        function sortTable(colIndex) {
+            if (sortColumn === colIndex) {
+                sortAscending = !sortAscending;
+            } else {
+                sortColumn = colIndex;
+                sortAscending = (colIndex === 1 || colIndex === 2);
+            }
+
+            // Update indicators
+            for (let i = 0; i <= 8; i++) {
+                const indicator = document.getElementById(`sort-${i}`);
+                if (i === colIndex) {
+                    indicator.innerText = sortAscending ? "▲" : "▼";
+                } else {
+                    indicator.innerText = "";
+                }
+            }
+
+            renderAllViews();
+        }
+
+        // Settings Modal Controls
+        function openSettingsModal() {
+            fetch('/api/settings')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert("Error loading settings: " + data.error);
+                        return;
+                    }
+                    document.getElementById("setting-expiry-mode").value = data.expiry_mode || "automatic";
+                    document.getElementById("setting-manual-expiry").value = data.manual_expiry_code || "";
+                    document.getElementById("setting-fallback").checked = !!data.fallback_to_nearest;
+                    document.getElementById("setting-strikes").value = data.strikes_each_side || 1;
+                    document.getElementById("setting-multiplier").value = data.volume_multiplier || 30;
+                    document.getElementById("setting-min-vol").value = data.min_volume || 5000;
+                    document.getElementById("setting-min-prem").value = data.min_premium || 10;
+                    document.getElementById("setting-cooldown").value = data.cooldown_minutes || 5;
+                    document.getElementById("setting-refresh").value = data.refresh_interval || 1800;
+                    
+                    toggleManualExpiryInput();
+                    document.getElementById("settings-modal").style.display = "flex";
+                })
+                .catch(err => {
+                    console.error("Error fetching settings:", err);
+                    alert("Could not load settings. Web server might be offline.");
+                });
+        }
+
+        function closeSettingsModal() {
+            document.getElementById("settings-modal").style.display = "none";
+        }
+
+        function toggleManualExpiryInput() {
+            const mode = document.getElementById("setting-expiry-mode").value;
+            const container = document.getElementById("manual-expiry-container");
+            if (mode === "manual") {
+                container.style.display = "flex";
+            } else {
+                container.style.display = "none";
+            }
+        }
+
+        function saveSettings(e) {
+            e.preventDefault();
+            
+            const payload = {
+                expiry_mode: document.getElementById("setting-expiry-mode").value,
+                manual_expiry_code: document.getElementById("setting-manual-expiry").value,
+                fallback_to_nearest: document.getElementById("setting-fallback").checked,
+                strikes_each_side: parseInt(document.getElementById("setting-strikes").value) || 1,
+                volume_multiplier: parseFloat(document.getElementById("setting-multiplier").value) || 30.0,
+                min_volume: parseInt(document.getElementById("setting-min-vol").value) || 5000,
+                min_premium: parseFloat(document.getElementById("setting-min-prem").value) || 10.0,
+                cooldown_minutes: parseInt(document.getElementById("setting-cooldown").value) || 5,
+                refresh_interval: parseInt(document.getElementById("setting-refresh").value) || 1800
+            };
+            
+            fetch('/api/settings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "success") {
+                    alert("Settings saved successfully! Rebuilding option universe in background...");
+                    closeSettingsModal();
+                } else {
+                    alert("Error saving settings: " + data.message);
+                }
+            })
+            .catch(err => {
+                console.error("Error posting settings:", err);
+                alert("Failed to submit settings back to server.");
+            });
+        }
+
+        function toggleTheme() {
+            const body = document.body;
+            const toggleBtn = document.getElementById("theme-toggle");
+            if (body.classList.contains("theme-light")) {
+                body.classList.remove("theme-light");
+                toggleBtn.innerText = "🌙";
+                localStorage.setItem("theme", "dark");
+            } else {
+                body.classList.add("theme-light");
+                toggleBtn.innerText = "☀️";
+                localStorage.setItem("theme", "light");
+            }
+        }
+
+        // Apply saved theme on load
+        const savedTheme = localStorage.getItem("theme");
+        if (savedTheme === "light") {
+            document.body.classList.add("theme-light");
+            document.getElementById("theme-toggle").innerText = "☀️";
+        }
+
+        // Start WebSocket
+        connect();
+    </script>
+</body>
+</html>
